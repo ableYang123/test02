@@ -1,0 +1,212 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<!-- saved from url=(0092)http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/BMPEntityBeanTest.java.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<link rel="STYLESHEET" type="text/css" href="./org.mockejb.test.entity.BMPEntityBeanTest (Java2HTML)_files/stylesheet.css" title="Style">
+<meta name="GENERATOR" content="Java2HTML Version 1.3.1">
+<title>org.mockejb.test.entity.BMPEntityBeanTest (Java2HTML)</title>
+</head>
+<body><table id="Header" border="0" cellpadding="0" cellspacing="0" width="100%">
+<tbody><tr>
+<td colspan="2" width="33%">&nbsp;</td>
+<td align="center" colspan="2" width="33%">
+<font size="4">BMPEntityBeanTest.java</font>
+</td>
+<td align="right" colspan="2" width="33%">&nbsp;</td>
+</tr>
+</tbody></table>
+<pre id="Classes"><a name="1"></a><font id="Package">package</font> <a href="http://mockejb.sourceforge.net/java2html/org.mockejb.test.entity.index.html" target="packageFrame">org.mockejb.test.entity</a>;
+<a name="2"></a>
+<a name="3"></a><font id="Import">import</font> java.util.Collection;
+<a name="4"></a><font id="Import">import</font> javax.naming.*;
+<a name="5"></a>
+<a name="6"></a><font id="Import">import</font> junit.framework.TestCase;
+<a name="7"></a><font id="Import">import</font> org.easymock.MockControl;
+<a name="8"></a>
+<a name="9"></a><font id="Import">import</font> <a href="http://mockejb.sourceforge.net/java2html/org.mockejb.index.html" target="packageFrame">org.mockejb.*</a>;
+<a name="10"></a><font id="Import">import</font> <a href="http://mockejb.sourceforge.net/java2html/org.mockejb.interceptor.index.html" target="packageFrame">org.mockejb.interceptor.*</a>;
+<a name="11"></a><font id="Import">import</font> <a href="http://mockejb.sourceforge.net/java2html/org.mockejb.jndi.index.html" target="packageFrame">org.mockejb.jndi.*</a>;
+<a name="12"></a>
+<a name="13"></a>
+<a name="14"></a><font id="FormalComment">/**
+<a name="15"></a> * Demonstrates BMP Entity bean support.
+<a name="16"></a> * MockEJB calls BMP entity beans same way with session beans, 
+<a name="17"></a> * however finders have to be handled using aspects/interceptors framework. 
+<a name="18"></a> * BMP finders always return primary key(s), so clients have to write 
+<a name="19"></a> * interceptors to translate primary key to the entity.
+<a name="20"></a> */</font>  
+<a name="21"></a><font id="Public">public</font> <font id="Class">class</font> BMPEntityBeanTest <font id="Extends">extends</font> TestCase {
+<a name="22"></a>
+<a name="23"></a>    <font id="SingleLineComment">// JNDI context and MockContainer instance used by all tests in this class  
+<a name="24"></a></font>    <font id="Private">private</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/MockContainer.java.html">MockContainer</a> mockContainer;
+<a name="25"></a>    <font id="Private">private</font> Context context;    
+<a name="26"></a>    <font id="Private">private</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/interceptor/AspectSystem.java.html">AspectSystem</a> aspectSystem;
+<a name="27"></a>
+<a name="28"></a>    <font id="SingleLineComment">// We use PersonHome in all tests
+<a name="29"></a></font>    <font id="Private">private</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/PersonHome.java.html">PersonHome</a> personHome;
+<a name="30"></a>    
+<a name="31"></a>    <font id="Public">public</font> BMPEntityBeanTest(String testName) {
+<a name="32"></a>        <font id="Super">super</font>(testName);
+<a name="33"></a>    }
+<a name="34"></a>    
+<a name="35"></a>
+<a name="36"></a>    <font id="FormalComment">/**
+<a name="37"></a>     * Sets up our mock container, JNDI context and deploy the beans that we need.   
+<a name="38"></a>     */</font>
+<a name="39"></a>    <font id="Public">public</font> <font id="Void">void</font> setUp() <font id="Throws">throws</font> Exception  {
+<a name="40"></a>
+<a name="41"></a>        <font id="SingleLineComment">// we use aspects in most of the tests here
+<a name="42"></a></font>        aspectSystem =  AspectSystemFactory.getAspectSystem();
+<a name="43"></a>
+<a name="44"></a>        <font id="SingleLineComment">// MockContextFactory becomes the primary JNDI provider            
+<a name="45"></a></font>        MockContextFactory.setAsInitial();
+<a name="46"></a>        context = <font id="New">new</font> InitialContext();
+<a name="47"></a>
+<a name="48"></a>        <font id="SingleLineComment">// Creating MockContainer deletes all aspects from AspectSystem and clears EntityDatabase 
+<a name="49"></a></font>        mockContainer = <font id="New">new</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/MockContainer.java.html">MockContainer</a>( context );
+<a name="50"></a>       
+<a name="51"></a>        <font id="SingleLineComment">// Deploy the person bean
+<a name="52"></a></font>        <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/EntityBeanDescriptor.java.html">EntityBeanDescriptor</a> personDescriptor = 
+<a name="53"></a>            <font id="New">new</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/EntityBeanDescriptor.java.html">EntityBeanDescriptor</a>( Person.JNDI_NAME, 
+<a name="54"></a>            <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/PersonHome.java.html">PersonHome</a>.<font id="Class">class</font>, <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/Person.java.html">Person</a>.<font id="Class">class</font>, <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/PersonBMPBean.java.html">PersonBMPBean</a>.<font id="Class">class</font> );
+<a name="55"></a>         
+<a name="56"></a>        mockContainer.deploy( personDescriptor );
+<a name="57"></a>
+<a name="58"></a>        <font id="SingleLineComment">// Obtain personHome for use in the tests
+<a name="59"></a></font>        personHome = (<a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/PersonHome.java.html">PersonHome</a>)context.lookup(Person.JNDI_NAME);
+<a name="60"></a>        
+<a name="61"></a>    }
+<a name="62"></a>    
+<a name="63"></a>    <font id="Public">public</font> <font id="Void">void</font> tearDown() {
+<a name="64"></a>        <font id="SingleLineComment">// cleanup JNDI settings
+<a name="65"></a></font>        MockContextFactory.revertSetAsInitial();
+<a name="66"></a>    }
+<a name="67"></a>
+<a name="68"></a>    
+<a name="69"></a>    <font id="FormalComment">/**
+<a name="70"></a>     * Demonstrates how to setup BMP finder support with the help of 
+<a name="71"></a>     * interceptors. PersonFinderAspect (see the code at bottom of this file) 
+<a name="72"></a>     * ignores the PK values returned by the real finder and substitutes them
+<a name="73"></a>     * with the Person entities that it creates.
+<a name="74"></a>     * This can be used to provide mock data for testing as opposed to
+<a name="75"></a>     * relying on the database. 
+<a name="76"></a>     */</font>
+<a name="77"></a>    <font id="Public">public</font> <font id="Void">void</font> testFinderUsingAspect() <font id="Throws">throws</font> Exception {
+<a name="78"></a>        <font id="SingleLineComment">// add aspect that handles finders
+<a name="79"></a></font>        aspectSystem.add( <font id="New">new</font> PersonFinderAspect() );
+<a name="80"></a>        
+<a name="81"></a>        <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/Person.java.html">Person</a> person = personHome.findByName(<font id="StringLiteral">"John"</font>, <font id="StringLiteral">"Doe"</font> );
+<a name="82"></a>        assertNotNull(person);
+<a name="83"></a>        assertEquals(<font id="StringLiteral">"Doe"</font>, person.getLastName());
+<a name="84"></a>    }
+<a name="85"></a>    
+<a name="86"></a>    <font id="FormalComment">/**
+<a name="87"></a>     * Demonstrates how to tell MockEJB to resolve the PKs returned by the 
+<a name="88"></a>     * finder without the use of interceptors. 
+<a name="89"></a>     */</font>
+<a name="90"></a>    <font id="Public">public</font> <font id="Void">void</font> testFinderUsingEntityDatabase() <font id="Throws">throws</font> Exception {
+<a name="91"></a>        <font id="SingleLineComment">// Create mock entity 
+<a name="92"></a></font>        MockControl personBeanControl = MockControl.createControl( <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/Person.java.html">Person</a>.<font id="Class">class</font>); 
+<a name="93"></a>        <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/Person.java.html">Person</a> createdPerson = (<a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/Person.java.html">Person</a>) personBeanControl.getMock(); 
+<a name="94"></a>
+<a name="95"></a>        createdPerson.getId();
+<a name="96"></a>        personBeanControl.setReturnValue(<font id="IntegerLiteral">1L</font>);
+<a name="97"></a>        createdPerson.getFirstName();
+<a name="98"></a>        personBeanControl.setReturnValue(<font id="StringLiteral">"John"</font>);
+<a name="99"></a>        createdPerson.getLastName();
+<a name="100"></a>        personBeanControl.setReturnValue(<font id="StringLiteral">"Doe"</font>);
+<a name="101"></a>        
+<a name="102"></a>        personBeanControl.replay();
+<a name="103"></a>        
+<a name="104"></a>        <font id="MultiLineComment">/* Add mock entity to the "database" so MockEJB could resolve the PKs returned by the finder. 
+<a name="105"></a>         * For BMP, MockEJB searches the EntityDatabase for every PK returned by the finder. 
+<a name="106"></a>         */</font>
+<a name="107"></a>        mockContainer.getEntityDatabase().add( <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/PersonHome.java.html">PersonHome</a>.<font id="Class">class</font>, <font id="New">new</font> Long(<font id="IntegerLiteral">1</font>), createdPerson );
+<a name="108"></a>        <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/PersonHome.java.html">PersonHome</a> personHome = (<a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/PersonHome.java.html">PersonHome</a>)context.lookup(Person.JNDI_NAME);
+<a name="109"></a>        <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/Person.java.html">Person</a> foundPerson = personHome.findByName(<font id="StringLiteral">"John"</font>, <font id="StringLiteral">"Doe"</font> );
+<a name="110"></a>        assertEquals( createdPerson, foundPerson );
+<a name="111"></a>       
+<a name="112"></a>        <font id="SingleLineComment">// Test the finder which returns the collection
+<a name="113"></a></font>        Collection people = personHome.findByFirstName(<font id="StringLiteral">"John"</font>);
+<a name="114"></a>        assertTrue( people.size()&gt;<font id="IntegerLiteral">0</font>);
+<a name="115"></a>        foundPerson = (<a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/Person.java.html">Person</a>)people.iterator().next();
+<a name="116"></a>        assertEquals( createdPerson, foundPerson );
+<a name="117"></a>        
+<a name="118"></a>    }
+<a name="119"></a>
+<a name="120"></a>    
+<a name="121"></a>    <font id="FormalComment">/**
+<a name="122"></a>     * This test demonstrates how we can test BMP entities that 
+<a name="123"></a>     * indeed read something from the database.
+<a name="124"></a>     * MockEJB does the following: 
+<a name="125"></a>     * it calls the finder, checks if the returned PK is in the EntityDatabase.
+<a name="126"></a>     * If not, it creates a new entity instance and calls ejbLoad on it   
+<a name="127"></a>     */</font>
+<a name="128"></a>    <font id="Public">public</font> <font id="Void">void</font> testFinderAndEjbLoad() <font id="Throws">throws</font> Exception {
+<a name="129"></a>
+<a name="130"></a>        <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/PersonHome.java.html">PersonHome</a> personHome = (<a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/PersonHome.java.html">PersonHome</a>)context.lookup(Person.JNDI_NAME);
+<a name="131"></a>        
+<a name="132"></a>        <font id="MultiLineComment">/* BMPPersonBean finder always returns 1, so we're relying on this.
+<a name="133"></a>         * We'll also rely on ejbLoad to populate the entity.
+<a name="134"></a>         * BMPPersonBean.ejbLoad does not go to the database, 
+<a name="135"></a>         * it only sets the PK so we'll check that.
+<a name="136"></a>         */</font>  
+<a name="137"></a>        <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/Person.java.html">Person</a> foundPerson = personHome.findByName(<font id="StringLiteral">"John"</font>, <font id="StringLiteral">"Doe"</font> );
+<a name="138"></a>        <font id="SingleLineComment">// did the ejbLoad work?
+<a name="139"></a></font>        assertEquals( <font id="IntegerLiteral">1L</font>, foundPerson.getId() );
+<a name="140"></a>      
+<a name="141"></a>        <font id="SingleLineComment">// Test the finder which returns the collection
+<a name="142"></a></font>        Collection people = personHome.findByFirstName(<font id="StringLiteral">"John"</font>);
+<a name="143"></a>        assertTrue( people.size()&gt;<font id="IntegerLiteral">0</font>);
+<a name="144"></a>        foundPerson = (<a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/Person.java.html">Person</a>)people.iterator().next();
+<a name="145"></a>        assertEquals( <font id="IntegerLiteral">1L</font>, foundPerson.getId());
+<a name="146"></a>    }
+<a name="147"></a>    
+<a name="148"></a>
+<a name="149"></a>    <font id="SingleLineComment">// *** Interceptors used by this test case
+<a name="150"></a></font>    
+<a name="151"></a>    <font id="FormalComment">/**
+<a name="152"></a>     * Handles findByName calls
+<a name="153"></a>     */</font> 
+<a name="154"></a>    <font id="Class">class</font> PersonFinderAspect <font id="Implements">implements</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/interceptor/Aspect.java.html">Aspect</a> {
+<a name="155"></a>        
+<a name="156"></a>        <font id="FormalComment">/**
+<a name="157"></a>         * Intercept findByName method. 
+<a name="158"></a>         */</font> 
+<a name="159"></a>        <font id="Public">public</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/interceptor/Pointcut.java.html">Pointcut</a> getPointcut(){
+<a name="160"></a>            <font id="SingleLineComment">// Note that we are intecepting target method on the bean 
+<a name="161"></a></font>            <font id="SingleLineComment">// as opposed to the interface method. Unlike in CMP case, we can do it 
+<a name="162"></a></font>            <font id="SingleLineComment">// because BMP entities have defined finder methods. 
+<a name="163"></a></font>            <font id="Return">return</font> <font id="New">new</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/interceptor/MethodPatternPointcut.java.html">MethodPatternPointcut</a>( <font id="StringLiteral">"PersonBMPBean\\.ejbFindByName"</font> );
+<a name="164"></a>        }
+<a name="165"></a>        
+<a name="166"></a>        <font id="Public">public</font> <font id="Void">void</font> intercept( <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/interceptor/InvocationContext.java.html">InvocationContext</a> invocationContext ) <font id="Throws">throws</font> Exception {
+<a name="167"></a>            Object [] paramVals = invocationContext.getParamVals(); 
+<a name="168"></a>
+<a name="169"></a>            <font id="SingleLineComment">// now create 
+<a name="170"></a></font>            invocationContext.setReturnObject( create( (String)paramVals[<font id="IntegerLiteral">0</font>], (String)paramVals[<font id="IntegerLiteral">1</font>] ) );
+<a name="171"></a>            <font id="SingleLineComment">// We don't need to proceed to the next interceptor since we're done with the finder
+<a name="172"></a></font>        }
+<a name="173"></a>         
+<a name="174"></a>        <font id="FormalComment">/**
+<a name="175"></a>         * Creates Person entity using "genericCreate" method which creates an
+<a name="176"></a>         * instance of an entity without calling the actual "ejbCreate" 
+<a name="177"></a>         */</font>
+<a name="178"></a>        <font id="Private">private</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/Person.java.html">Person</a> create( String firstName, String lastName ) <font id="Throws">throws</font> Exception {
+<a name="179"></a>
+<a name="180"></a>            Context context = <font id="New">new</font> InitialContext();
+<a name="181"></a>            <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/GenericHome.java.html">GenericHome</a> home = (<a href="http://mockejb.sourceforge.net/java2html/org/mockejb/GenericHome.java.html">GenericHome</a>)context.lookup(Person.JNDI_NAME);
+<a name="182"></a>            
+<a name="183"></a>            <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/Person.java.html">Person</a> person = (<a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/entity/Person.java.html">Person</a>) home.genericCreate();
+<a name="184"></a>            person.setFirstName(firstName);
+<a name="185"></a>            person.setLastName(lastName);
+<a name="186"></a>            
+<a name="187"></a>            <font id="Return">return</font> person;
+<a name="188"></a>        }
+<a name="189"></a>        
+<a name="190"></a>    }
+<a name="191"></a>    
+<a name="192"></a>    
+<a name="193"></a>}
+<a name="194"></a></pre>
+
+</body></html>

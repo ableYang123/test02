@@ -1,0 +1,448 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<!-- saved from url=(0084)http://mockejb.sourceforge.net/java2html/org/mockejb/test/FundamentalsTest.java.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<link rel="STYLESHEET" type="text/css" href="./org.mockejb.test.FundamentalsTest (Java2HTML)_files/stylesheet.css" title="Style">
+<meta name="GENERATOR" content="Java2HTML Version 1.3.1">
+<title>org.mockejb.test.FundamentalsTest (Java2HTML)</title>
+</head>
+<body><table id="Header" border="0" cellpadding="0" cellspacing="0" width="100%">
+<tbody><tr>
+<td colspan="2" width="33%">&nbsp;</td>
+<td align="center" colspan="2" width="33%">
+<font size="4">FundamentalsTest.java</font>
+</td>
+<td align="right" colspan="2" width="33%">&nbsp;</td>
+</tr>
+</tbody></table>
+<pre id="Classes"><a name="1"></a><font id="Package">package</font> <a href="http://mockejb.sourceforge.net/java2html/org.mockejb.test.index.html" target="packageFrame">org.mockejb.test</a>;
+<a name="2"></a>
+<a name="3"></a><font id="Import">import</font> java.rmi.RemoteException;
+<a name="4"></a><font id="Import">import</font> java.security.Principal;
+<a name="5"></a>
+<a name="6"></a><font id="Import">import</font> javax.rmi.PortableRemoteObject;
+<a name="7"></a>
+<a name="8"></a><font id="Import">import</font> javax.naming.*;
+<a name="9"></a><font id="Import">import</font> javax.ejb.*;
+<a name="10"></a>
+<a name="11"></a><font id="Import">import</font> org.easymock.MockControl;
+<a name="12"></a><font id="Import">import</font> <a href="http://mockejb.sourceforge.net/java2html/org.mockejb.index.html" target="packageFrame">org.mockejb.*</a>;
+<a name="13"></a><font id="Import">import</font> <a href="http://mockejb.sourceforge.net/java2html/org.mockejb.interceptor.index.html" target="packageFrame">org.mockejb.interceptor.*</a>;
+<a name="14"></a><font id="Import">import</font> <a href="http://mockejb.sourceforge.net/java2html/org.mockejb.jndi.index.html" target="packageFrame">org.mockejb.jndi.*</a>;
+<a name="15"></a>
+<a name="16"></a>
+<a name="17"></a>
+<a name="18"></a><font id="FormalComment">/**
+<a name="19"></a> * Main MockEjb test case. Demonstrates the basic scenarios of MockEjb usage.
+<a name="20"></a> * This test runs in two modes. When Cactus mode is turned on (using 
+<a name="21"></a> * "mockejb.cactus.mode" system property), it will run as the Cactus test (on the server).
+<a name="22"></a> * In this case, the test class will use EJBs deployed by the app server.
+<a name="23"></a> * Otherwise it will run outside of the app server under MockContainer. 
+<a name="24"></a> * Cactus mode is supported by OptionalCactusTestCase superclass.
+<a name="25"></a> *
+<a name="26"></a> * @author Alexander Ananiev
+<a name="27"></a> */</font>
+<a name="28"></a><font id="Public">public</font> <font id="Class">class</font> FundamentalsTest <font id="Extends">extends</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/OptionalCactusTestCase.java.html">OptionalCactusTestCase</a> <font id="Implements">implements</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/interceptor/Interceptor.java.html">Interceptor</a>  {
+<a name="29"></a>    
+<a name="30"></a>        
+<a name="31"></a>    <font id="SingleLineComment">// State of this test case. These variables are initialized by setUp method
+<a name="32"></a></font>    <font id="Private">private</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleService.java.html">SampleService</a> sampleService;
+<a name="33"></a>    <font id="Private">private</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleServiceHome.java.html">SampleServiceHome</a> sampleServiceHome;
+<a name="34"></a>    <font id="Private">private</font> Context context;
+<a name="35"></a>
+<a name="36"></a>    <font id="SingleLineComment">// Aspect system used by this test
+<a name="37"></a></font>    <font id="Private">private</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/interceptor/AspectSystem.java.html">AspectSystem</a> aspectSystem;
+<a name="38"></a>
+<a name="39"></a>    <font id="Private">private</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/MockContainer.java.html">MockContainer</a> mockContainer;
+<a name="40"></a>    
+<a name="41"></a>    <font id="FormalComment">/**
+<a name="42"></a>     * Flag which is set by our custom interceptor if the method that
+<a name="43"></a>     * it checks was called. See testCustomInterceptor. 
+<a name="44"></a>     */</font>
+<a name="45"></a>    <font id="Private">private</font> <font id="Boolean">boolean</font> wasInvoked = <font id="False">false</font>;
+<a name="46"></a>
+<a name="47"></a>        
+<a name="48"></a>    <font id="Public">public</font> FundamentalsTest(String name) {
+<a name="49"></a>        <font id="Super">super</font>(name);
+<a name="50"></a>    }
+<a name="51"></a>        
+<a name="52"></a>    <font id="FormalComment">/**
+<a name="53"></a>     * Deploys and creates EJBs needed for our tests.
+<a name="54"></a>     * Note that JUnit runs this method for every test method, but since 
+<a name="55"></a>     * MockEjb deployment is purely an in-memory operation, 
+<a name="56"></a>     * it does not have any performance penalty.
+<a name="57"></a>     * During deployment, MockEjb simply re-binds EJBs to the same keys in the JNDI tree.
+<a name="58"></a>     */</font>    
+<a name="59"></a>    <font id="Public">public</font> <font id="Void">void</font> setUp() <font id="Throws">throws</font> Exception {
+<a name="60"></a>        
+<a name="61"></a>        <font id="MultiLineComment">/*
+<a name="62"></a>         * since some of the tests dynamically add interceptors, 
+<a name="63"></a>         * we need to initialize our AspectSystem
+<a name="64"></a>         * You may want to use "interceptor.aspect.system.thread" system 
+<a name="65"></a>         * property in which case AspectSystem is create per thread so the 
+<a name="66"></a>         * tests can run concurrently. 
+<a name="67"></a>         */</font>
+<a name="68"></a>        aspectSystem =  AspectSystemFactory.getAspectSystem();
+<a name="69"></a>        
+<a name="70"></a>        <font id="MultiLineComment">/* When the test runs on the server (in cactus mode) we want to be able 
+<a name="71"></a>         * to look up EJBs and resources already deployed in the container. 
+<a name="72"></a>         * This allows us to run the mix of "true" and  mock EJBs in the same test.
+<a name="73"></a>         */</font>
+<a name="74"></a>        <font id="If">if</font> ( isRunningOnServer() ) {
+<a name="75"></a>
+<a name="76"></a>            <font id="MultiLineComment">/* MockContext will look up objects in the tree of the
+<a name="77"></a>             * app server if its environment is set as the delegate.
+<a name="78"></a>             * Since we're already inside the app server, we assume that we can use 
+<a name="79"></a>             * its initial context to delegate to. 
+<a name="80"></a>             * Note that we must do it before we set MockContextFactory as initial. 
+<a name="81"></a>             */</font>
+<a name="82"></a>            MockContextFactory.setDelegateContext( <font id="New">new</font> InitialContext() );
+<a name="83"></a>        }    
+<a name="84"></a>
+<a name="85"></a>        <font id="MultiLineComment">/* We need to set MockContextFactory as our provider.
+<a name="86"></a>         * This method sets the necessary system properties. 
+<a name="87"></a>         * We can't simply pass hashtable to the InitialContext 
+<a name="88"></a>         * because our tested EJBs have "new InitialContext()" in their code.
+<a name="89"></a>         * So we assume that all participants of this test don't use 
+<a name="90"></a>         * the constructor of the InitialContext that takes Hashtable.
+<a name="91"></a>         */</font>
+<a name="92"></a>        MockContextFactory.setAsInitial();
+<a name="93"></a>        
+<a name="94"></a>        <font id="SingleLineComment">// create the initial context that will be used for binding EJBs
+<a name="95"></a></font>        context = <font id="New">new</font> InitialContext( );
+<a name="96"></a>        
+<a name="97"></a>        <font id="MultiLineComment">/* Create an instance of the MockContainer.
+<a name="98"></a>         * MockContainer also cleans all currently added aspects/interceptors and 
+<a name="99"></a>         * adds system interceptors that it  needs, such as ExceptionHandler
+<a name="100"></a>         * to make sure that we always start from a known state.
+<a name="101"></a>         */</font> 
+<a name="102"></a>        mockContainer = <font id="New">new</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/MockContainer.java.html">MockContainer</a>( context );
+<a name="103"></a>
+<a name="104"></a>        <font id="SingleLineComment">// if the test runs outside of the container (app server)
+<a name="105"></a></font>        <font id="If">if</font> (! isRunningOnServer()) {
+<a name="106"></a>
+<a name="107"></a>            <font id="MultiLineComment">/* Deploy EJBs to the MockContainer if we run outside of the app server
+<a name="108"></a>             * In cactus mode all but one EJB are deployed by the app server, so we don't need to
+<a name="109"></a>             * do it.
+<a name="110"></a>             */</font>    
+<a name="111"></a>            
+<a name="112"></a>
+<a name="113"></a>            <font id="MultiLineComment">/* Create deployment descriptor of our sample bean.
+<a name="114"></a>             * MockEjb does not support XML descriptors.
+<a name="115"></a>             */</font>
+<a name="116"></a>            <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/SessionBeanDescriptor.java.html">SessionBeanDescriptor</a> sampleServiceDescriptor = 
+<a name="117"></a>                <font id="New">new</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/SessionBeanDescriptor.java.html">SessionBeanDescriptor</a>( SampleService.JNDI_NAME, 
+<a name="118"></a>                <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleServiceHome.java.html">SampleServiceHome</a>.<font id="Class">class</font>, <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleService.java.html">SampleService</a>.<font id="Class">class</font>, <font id="New">new</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleServiceBean.java.html">SampleServiceBean</a>() );
+<a name="119"></a>            <font id="SingleLineComment">// Deploy operation simply creates Home and binds it to JNDI
+<a name="120"></a></font>            mockContainer.deploy( sampleServiceDescriptor );
+<a name="121"></a>
+<a name="122"></a>            <font id="SingleLineComment">// StatelessSampleBean calls SampleHelperBean, so we need to deploy it too
+<a name="123"></a></font>    
+<a name="124"></a>            <font id="MultiLineComment">/* MockEjb does not currently support true bean-scoped JNDI context, so 
+<a name="125"></a>             * every JNDI name must be unique within the test.
+<a name="126"></a>             * Therefore we use JNDI name required by SampleBean (configured via ejb-ref in the real EJB) 
+<a name="127"></a>             * to access HelperBean
+<a name="128"></a>             */</font> 
+<a name="129"></a>            <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/SessionBeanDescriptor.java.html">SessionBeanDescriptor</a> helperBeanDescriptor = 
+<a name="130"></a>                <font id="New">new</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/SessionBeanDescriptor.java.html">SessionBeanDescriptor</a>( SampleServiceBean.HELPER_BEAN_JNDI_NAME, 
+<a name="131"></a>                <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleHelperHome.java.html">SampleHelperHome</a>.<font id="Class">class</font>, <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleHelper.java.html">SampleHelper</a>.<font id="Class">class</font>, <font id="New">new</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleHelperBean.java.html">SampleHelperBean</a>() );
+<a name="132"></a>            mockContainer.deploy( helperBeanDescriptor );
+<a name="133"></a>    
+<a name="134"></a>        }
+<a name="135"></a>
+<a name="136"></a>        <font id="MultiLineComment">/*
+<a name="137"></a>         * Deploy mock implementation of the ExternalService session bean.
+<a name="138"></a>         * ExternalService is not part of the unit we're testing (SampleBean), 
+<a name="139"></a>         * so we don't want to rely on its implementation (which might depend on
+<a name="140"></a>         * other session beans or other resources). 
+<a name="141"></a>         * We use EasyMock framework to create an implementation that 
+<a name="142"></a>         * simply returns mock test data.
+<a name="143"></a>         * If you run this class inside the container and real ExternalService session 
+<a name="144"></a>         * bean is deployed, our mock 
+<a name="145"></a>         * implementation will override it (just for the duration of the test).
+<a name="146"></a>         */</font>
+<a name="147"></a>        <font id="SingleLineComment">// use easymock to program mock bean. Note that you don't need to worry about callback
+<a name="148"></a></font>        <font id="SingleLineComment">// methods, MockEJB "understands" that the class is a mock class and won't try to 
+<a name="149"></a></font>        <font id="SingleLineComment">// call callback methods on it. 
+<a name="150"></a></font>
+<a name="151"></a>        MockControl externalServiceControl = MockControl.createControl(<a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/ExternalService.java.html">ExternalService</a>.<font id="Class">class</font>); 
+<a name="152"></a>        <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/ExternalService.java.html">ExternalService</a> externalServiceBean = (<a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/ExternalService.java.html">ExternalService</a>) externalServiceControl.getMock(); 
+<a name="153"></a>        externalServiceBean.sampleMethod();
+<a name="154"></a>        externalServiceControl.setReturnValue(<font id="StringLiteral">"sample string"</font>);
+<a name="155"></a>        externalServiceControl.replay();
+<a name="156"></a>
+<a name="157"></a>        mockContainer.deploy( <font id="New">new</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/SessionBeanDescriptor.java.html">SessionBeanDescriptor</a>( ExternalService.JNDI_NAME, 
+<a name="158"></a>                 <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/ExternalServiceHome.java.html">ExternalServiceHome</a>.<font id="Class">class</font>, <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/ExternalService.java.html">ExternalService</a>.<font id="Class">class</font>, externalServiceBean ) );
+<a name="159"></a>        <font id="SingleLineComment">// All EJBs are now deployed
+<a name="160"></a></font>        
+<a name="161"></a>        <font id="SingleLineComment">// To get the Sample bean we use the standard J2EE routine
+<a name="162"></a></font>       
+<a name="163"></a>        <font id="SingleLineComment">// Lookup the home
+<a name="164"></a></font>        Object sampleHomeObj = context.lookup( SampleService.JNDI_NAME );
+<a name="165"></a>        
+<a name="166"></a>        <font id="SingleLineComment">// PortableRemoteObject does not do anything in our case but we can still call it
+<a name="167"></a></font>        sampleServiceHome = (<a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleServiceHome.java.html">SampleServiceHome</a>) PortableRemoteObject.narrow(sampleHomeObj, 
+<a name="168"></a>            <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleServiceHome.java.html">SampleServiceHome</a>.<font id="Class">class</font> );
+<a name="169"></a>        
+<a name="170"></a>        <font id="SingleLineComment">// create the bean
+<a name="171"></a></font>        sampleService = sampleServiceHome.create();
+<a name="172"></a>
+<a name="173"></a>    }
+<a name="174"></a>
+<a name="175"></a>    
+<a name="176"></a>    <font id="FormalComment">/**
+<a name="177"></a>     * Performs the necessary cleanup by restoring the system properties that
+<a name="178"></a>     * were modified by MockContextFactory.setAsInitial().
+<a name="179"></a>     * This is needed in case if the test runs inside the container, so it would
+<a name="180"></a>     * not affect the tests that run after it.  
+<a name="181"></a>     */</font>
+<a name="182"></a>    <font id="Public">public</font> <font id="Void">void</font> tearDown() {
+<a name="183"></a>        
+<a name="184"></a>        <font id="SingleLineComment">// Inside the container this method does not do anything
+<a name="185"></a></font>        MockContextFactory.revertSetAsInitial();
+<a name="186"></a>    }
+<a name="187"></a>   
+<a name="188"></a>    <font id="FormalComment">/**
+<a name="189"></a>     * Tests standard Home and EJBMetaData methods.
+<a name="190"></a>     */</font>    
+<a name="191"></a>    <font id="Public">public</font> <font id="Void">void</font> testHome() <font id="Throws">throws</font> Exception {
+<a name="192"></a>    
+<a name="193"></a>        <font id="SingleLineComment">// Test the support of EJB metadata        
+<a name="194"></a></font>        EJBMetaData ejbMetaData = sampleServiceHome.getEJBMetaData();
+<a name="195"></a>
+<a name="196"></a>        assertEquals( ejbMetaData.getHomeInterfaceClass(), 
+<a name="197"></a>            <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleServiceHome.java.html">SampleServiceHome</a>.<font id="Class">class</font> );
+<a name="198"></a>   
+<a name="199"></a>        <font id="SingleLineComment">// note how you can use simple "equals" with EJBs and their homes
+<a name="200"></a></font>        assertEquals( sampleServiceHome, ejbMetaData.getEJBHome()  );
+<a name="201"></a>                
+<a name="202"></a>        <font id="SingleLineComment">// toString also supported
+<a name="203"></a></font>        System.out.println(sampleServiceHome);
+<a name="204"></a>        
+<a name="205"></a>        <font id="SingleLineComment">// Test standard EJB methods            
+<a name="206"></a></font>        assertEquals( sampleService.getEJBHome(), sampleServiceHome);
+<a name="207"></a>        assertTrue( sampleService.isIdentical( sampleService ));
+<a name="208"></a>        
+<a name="209"></a>        <font id="MultiLineComment">/* make sure that we can serialize home and the bean
+<a name="210"></a>         * in case if we run outside of the app server
+<a name="211"></a>         */</font>
+<a name="212"></a>        <font id="If">if</font> ( !isRunningOnServer() ) {
+<a name="213"></a>            java.io.ByteArrayOutputStream baos = <font id="New">new</font> java.io.ByteArrayOutputStream();
+<a name="214"></a>            java.io.ObjectOutputStream oos = <font id="New">new</font> java.io.ObjectOutputStream(baos);
+<a name="215"></a>            oos.writeObject(sampleServiceHome);
+<a name="216"></a>            oos.writeObject(sampleService);
+<a name="217"></a>            oos.close();        
+<a name="218"></a>        }
+<a name="219"></a>    
+<a name="220"></a>    }
+<a name="221"></a>   
+<a name="222"></a>    <font id="FormalComment">/**
+<a name="223"></a>     * Tests simple EJB invocations
+<a name="224"></a>     */</font>
+<a name="225"></a>    <font id="Public">public</font> <font id="Void">void</font> testSimpleCalls() <font id="Throws">throws</font> Exception {
+<a name="226"></a>        <font id="SingleLineComment">// Call a simple business method
+<a name="227"></a></font>        String s = sampleService.echoString( <font id="StringLiteral">"test"</font>);
+<a name="228"></a>        assertEquals( s, <font id="StringLiteral">"test"</font> );                     
+<a name="229"></a>        
+<a name="230"></a>        <font id="SingleLineComment">// now call the method that invokes another bean
+<a name="231"></a></font>        assertNotNull( sampleService.invokeOtherBean() );
+<a name="232"></a>        
+<a name="233"></a>        <font id="SingleLineComment">// now make a call to the external service
+<a name="234"></a></font>        sampleService.invokeExternalService();
+<a name="235"></a>        
+<a name="236"></a>        <font id="MultiLineComment">/* We can even examine the internal state of the bean if there is a need.
+<a name="237"></a>         * Any EJB created by MockEJB can be casted to the special interface that 
+<a name="238"></a>         * provides access to the bean and its context
+<a name="239"></a>         */</font> 
+<a name="240"></a>        <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleServiceBean.java.html">SampleServiceBean</a> sampleServiceBean =(<a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleServiceBean.java.html">SampleServiceBean</a>)  ((<a href="http://mockejb.sourceforge.net/java2html/org/mockejb/EjbBeanAccess.java.html">EjbBeanAccess</a>)sampleService).getBean();
+<a name="241"></a>        <font id="SingleLineComment">// we have no  state to check for this test. Just making sure that it works
+<a name="242"></a></font>        assertNotNull(sampleServiceBean);
+<a name="243"></a>    } 
+<a name="244"></a>   
+<a name="245"></a>    
+<a name="246"></a>    <font id="FormalComment">/**
+<a name="247"></a>     * Test MockEJB exception handling. 
+<a name="248"></a>     * According to the EJB spec, system exception must be wrapped in 
+<a name="249"></a>     * RemoteException.
+<a name="250"></a>     * The exception from the local interface must be wrapped in EJBException.
+<a name="251"></a>     * MockEjb treats all runtime and transaction-related exceptions as system exceptions.
+<a name="252"></a>     */</font> 
+<a name="253"></a>    <font id="Public">public</font> <font id="Void">void</font> testExceptionHandling() <font id="Throws">throws</font> Exception { 
+<a name="254"></a>
+<a name="255"></a>        <font id="Try">try</font>{
+<a name="256"></a>            sampleService.throwSystemException();
+<a name="257"></a>        }
+<a name="258"></a>        <font id="Catch">catch</font> ( RemoteException remoteEx ){
+<a name="259"></a>            assertTrue( remoteEx.detail <font id="InstanceOf">instanceof</font> EJBException );
+<a name="260"></a>            assertTrue( ((EJBException)remoteEx.detail).getCausedByException() 
+<a name="261"></a>                <font id="InstanceOf">instanceof</font> RuntimeException );           
+<a name="262"></a>        }            
+<a name="263"></a>        
+<a name="264"></a>        <font id="SingleLineComment">// Example of the application exception.
+<a name="265"></a></font>        <font id="SingleLineComment">// Container should pass this exception through without changes.
+<a name="266"></a></font>        <font id="Try">try</font>{
+<a name="267"></a>            sampleService.throwAppException();
+<a name="268"></a>            fail(<font id="StringLiteral">"We did not get the application exception "</font>);
+<a name="269"></a>        }
+<a name="270"></a>        <font id="Catch">catch</font>( Exception ex ){
+<a name="271"></a>        }
+<a name="272"></a>    }
+<a name="273"></a>    
+<a name="274"></a>    <font id="FormalComment">/**
+<a name="275"></a>     * Demonstrates the use of custom interceptors. 
+<a name="276"></a>     * This test class implements Interceptor interface. It will verify
+<a name="277"></a>     * that not-null parameter is passed to HelperBean.
+<a name="278"></a>     * The same thing can be done using InvocationRecorder 
+<a name="279"></a>     * (see testInvocationRecorder).
+<a name="280"></a>     * We can only run this test if it is being executed outside of the 
+<a name="281"></a>     * container. 
+<a name="282"></a>     */</font>
+<a name="283"></a>    <font id="Public">public</font> <font id="Void">void</font> testCustomInterceptor() <font id="Throws">throws</font> Exception {
+<a name="284"></a>        
+<a name="285"></a>        <font id="SingleLineComment">// This won't work in the container since it does not support interceptors
+<a name="286"></a></font>        <font id="If">if</font> ( isRunningOnServer( ))
+<a name="287"></a>            <font id="Return">return</font>;
+<a name="288"></a>        
+<a name="289"></a>        <font id="SingleLineComment">// Set our custom interceptor so it would handle all calls to SampleHelper interface (w/o subclasses)
+<a name="290"></a></font>        aspectSystem.add( <font id="New">new</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/interceptor/ClassPointcut.java.html">ClassPointcut</a>( <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleHelper.java.html">SampleHelper</a>.<font id="Class">class</font>, <font id="False">false</font>), <font id="This">this</font>);        
+<a name="291"></a>        
+<a name="292"></a>        <font id="SingleLineComment">// flag indicating that the EJB under test was called
+<a name="293"></a></font>        wasInvoked = <font id="False">false</font>;
+<a name="294"></a>         
+<a name="295"></a>        <font id="SingleLineComment">// we can now invoke our test method
+<a name="296"></a></font>        <font id="SingleLineComment">// In case of problems, "asserts" in the invoker will fail the test.
+<a name="297"></a></font>        <font id="SingleLineComment">// This method calls HelperBean method
+<a name="298"></a></font>        sampleService.invokeOtherBean();
+<a name="299"></a>        <font id="SingleLineComment">// we need to make sure that the method was invoked
+<a name="300"></a></font>        assertTrue( wasInvoked );
+<a name="301"></a>        
+<a name="302"></a>    }
+<a name="303"></a>
+<a name="304"></a>
+<a name="305"></a>    <font id="FormalComment">/**
+<a name="306"></a>     * InvocationRecorder interceptor provides an easy way to inspect the
+<a name="307"></a>     * data about the calls.
+<a name="308"></a>     * If it added to the interceptor list, it will record the information about
+<a name="309"></a>     * all calls to the bean.
+<a name="310"></a>     * We'll use it to check that SampleBean called HelperBean and passed non-null
+<a name="311"></a>     * parameter.
+<a name="312"></a>     * We can only run this test if it is being executed outside of the 
+<a name="313"></a>     * container. 
+<a name="314"></a>     */</font>
+<a name="315"></a>    <font id="Public">public</font> <font id="Void">void</font> testInvocationRecorder() <font id="Throws">throws</font> Exception {
+<a name="316"></a>
+<a name="317"></a>        <font id="SingleLineComment">// This won't work in the container since it does not support interceptors
+<a name="318"></a></font>        <font id="If">if</font> ( isRunningOnServer( ))
+<a name="319"></a>            <font id="Return">return</font>;
+<a name="320"></a>
+<a name="321"></a>        <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/interceptor/InvocationRecorder.java.html">InvocationRecorder</a> recorder = <font id="New">new</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/interceptor/InvocationRecorder.java.html">InvocationRecorder</a>();
+<a name="322"></a>        
+<a name="323"></a>        <font id="SingleLineComment">// Set the recorder so it would record all calls to SampleHelper interface (w/o subclasses)
+<a name="324"></a></font>        aspectSystem.add( <font id="New">new</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/interceptor/ClassPointcut.java.html">ClassPointcut</a>( <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleHelper.java.html">SampleHelper</a>.<font id="Class">class</font>, <font id="False">false</font>), recorder);        
+<a name="325"></a>        
+<a name="326"></a>        <font id="MultiLineComment">/*
+<a name="327"></a>         * We can also capture the calls to the create method of the SampleHelperHome
+<a name="328"></a>         * We don't really need to do it here, it just demonstrates that you can intercept 
+<a name="329"></a>         * "create" methods. 
+<a name="330"></a>         */</font>  
+<a name="331"></a>        aspectSystem.add( <font id="New">new</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/interceptor/MethodPatternPointcut.java.html">MethodPatternPointcut</a>( <font id="StringLiteral">"SampleHelperHome\\.create()"</font> ), recorder);
+<a name="332"></a>        
+<a name="333"></a>        <font id="MultiLineComment">/*
+<a name="334"></a>         * Or how about intercepting JNDI lookups? 
+<a name="335"></a>         */</font>  
+<a name="336"></a>        aspectSystem.add( <font id="New">new</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/interceptor/MethodPatternPointcut.java.html">MethodPatternPointcut</a>( <font id="StringLiteral">"Context\\.lookup"</font> ), recorder);
+<a name="337"></a>        
+<a name="338"></a>
+<a name="339"></a>        <font id="SingleLineComment">// recorder is now active, it will preserve the info about all calls to SampleHelper
+<a name="340"></a></font>
+<a name="341"></a>        <font id="SingleLineComment">// we can now invoke our test method
+<a name="342"></a></font>        <font id="SingleLineComment">// This method calls HelperBean method
+<a name="343"></a></font>        sampleService.invokeOtherBean();
+<a name="344"></a>        
+<a name="345"></a>        
+<a name="346"></a>        <font id="SingleLineComment">// Make sure that the method of our interest was invoked
+<a name="347"></a></font>        
+<a name="348"></a>        <font id="SingleLineComment">// Tests that the JNDI lookup was called
+<a name="349"></a></font>        assertNotNull( recorder.findByProxyMethod( <font id="StringLiteral">"Context\\.lookup"</font>) );
+<a name="350"></a>        
+<a name="351"></a>        <font id="SingleLineComment">// Test that the lifecycle methods were invoked by the container (triggered by "create")
+<a name="352"></a></font>        assertNotNull( recorder.findByProxyMethod( <font id="StringLiteral">"SampleHelperHome\\.create()"</font>) );
+<a name="353"></a>        
+<a name="354"></a>        
+<a name="355"></a>        <font id="SingleLineComment">// Test that the dummy method was invoked
+<a name="356"></a></font>        <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/interceptor/InvocationContext.java.html">InvocationContext</a> dummyMethodInvocation = recorder.findByTargetMethod( <font id="StringLiteral">"dummyMethod"</font>);
+<a name="357"></a>        assertNotNull(dummyMethodInvocation);
+<a name="358"></a>        <font id="SingleLineComment">// make sure that the parameter was not null
+<a name="359"></a></font>        assertNotNull( dummyMethodInvocation.getParamVals()[<font id="IntegerLiteral">0</font>]);
+<a name="360"></a>        
+<a name="361"></a>        <font id="SingleLineComment">// since the aspect system is re-initialized in setUp we don't need to 
+<a name="362"></a></font>        <font id="SingleLineComment">// clean the recorder we just added        
+<a name="363"></a></font>    }
+<a name="364"></a>    <font id="FormalComment">/**
+<a name="365"></a>     * This method demonstrates how to test beans that makes the use of
+<a name="366"></a>     * use of the security-related methods of EJBContext (getCallerPrincipal, isCallerInRole).
+<a name="367"></a>     */</font>
+<a name="368"></a>    <font id="Public">public</font> <font id="Void">void</font> testSecurity() <font id="Throws">throws</font> Exception {
+<a name="369"></a>
+<a name="370"></a>        <font id="MultiLineComment">/* Create the mock user and "login". Login method
+<a name="371"></a>         * simply puts the user on the thread so EJBContext implementation
+<a name="372"></a>         * can get to it. 
+<a name="373"></a>         * This will create user without any roles.
+<a name="374"></a>         */</font> 
+<a name="375"></a>        mockContainer.login( <font id="New">new</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/MockUser.java.html">MockUser</a>( <font id="StringLiteral">"testuser"</font>));
+<a name="376"></a>        Principal principal = sampleService.getPrincipal();
+<a name="377"></a>        assertEquals(<font id="StringLiteral">"testuser"</font>, principal.getName());
+<a name="378"></a>        
+<a name="379"></a>        <font id="SingleLineComment">// Now let's add roles
+<a name="380"></a></font>        mockContainer.login( <font id="New">new</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/MockUser.java.html">MockUser</a>( <font id="StringLiteral">"testuser"</font>, <font id="New">new</font> String[] {<font id="StringLiteral">"role1"</font>,<font id="StringLiteral">"role2"</font>}));
+<a name="381"></a>        <font id="SingleLineComment">// "hasRole" simply returns the result of "isCallerInRole"
+<a name="382"></a></font>        assertTrue( sampleService.hasRole(<font id="StringLiteral">"role1"</font>) );
+<a name="383"></a>        assertTrue( sampleService.hasRole(<font id="StringLiteral">"role2"</font>) );
+<a name="384"></a>        assertFalse( sampleService.hasRole(<font id="StringLiteral">"fake_role"</font>) );
+<a name="385"></a>    
+<a name="386"></a>        <font id="SingleLineComment">// If you don't login, MockContainer logs in as anonymous user, 
+<a name="387"></a></font>        <font id="SingleLineComment">// which you can do as well:
+<a name="388"></a></font>        mockContainer.login( MockUser.ANONYMOUS_USER );
+<a name="389"></a>    }
+<a name="390"></a>
+<a name="391"></a>    
+<a name="392"></a>    <font id="FormalComment">/**
+<a name="393"></a>     * Implementation of the Interceptor interface that can be used 
+<a name="394"></a>     * for testing various preconditions/postconditions of the EJB call.
+<a name="395"></a>     * Here we use it for very simple check to make sure that non-null parameter
+<a name="396"></a>     * is passed to the HelperBean.
+<a name="397"></a>     */</font>
+<a name="398"></a>    <font id="Public">public</font> <font id="Void">void</font> intercept( <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/interceptor/InvocationContext.java.html">InvocationContext</a> invocationContext ) <font id="Throws">throws</font> Exception {
+<a name="399"></a>        
+<a name="400"></a>        <font id="SingleLineComment">// Make sure that we run the test for the right method
+<a name="401"></a></font>        <font id="If">if</font> ( <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleHelperBean.java.html">SampleHelperBean</a>.<font id="Class">class</font>.isInstance( invocationContext.getTargetObject() ) &amp;&amp; 
+<a name="402"></a>                invocationContext.getTargetMethod().getName().equals(<font id="StringLiteral">"dummyMethod"</font>)) { 
+<a name="403"></a>            System.out.println(<font id="StringLiteral">"Running test invoker for "</font>+invocationContext.getTargetMethod() );
+<a name="404"></a>            <font id="SingleLineComment">// Test that SampleBean is passing parameter to the HelperBean
+<a name="405"></a></font>            assertNotNull( invocationContext.getParamVals()[<font id="IntegerLiteral">0</font>] );
+<a name="406"></a>            wasInvoked = <font id="True">true</font>;            
+<a name="407"></a>        }
+<a name="408"></a>        
+<a name="409"></a>        <font id="SingleLineComment">// We're done, move to the next interceptor from the list
+<a name="410"></a></font>        invocationContext.proceed( );
+<a name="411"></a>    }
+<a name="412"></a>    
+<a name="413"></a>    <font id="FormalComment">/**
+<a name="414"></a>     * Example of a mock session bean implementing ExternalService interface.
+<a name="415"></a>     * Note how MockEJB allows to specify a bean implementation without having to
+<a name="416"></a>     * provide mandatory callback methods. 
+<a name="417"></a>     * This class is not used. It is here only for demo purposes. 
+<a name="418"></a>     * We use Easymock to create mock implementation
+<a name="419"></a>     * classes. 
+<a name="420"></a>     */</font>
+<a name="421"></a>    <font id="Public">public</font> <font id="Static">static</font> <font id="Class">class</font> ExternalServiceMockBean  { 
+<a name="422"></a>        
+<a name="423"></a>        <font id="Public">public</font> String sampleMethod(){
+<a name="424"></a>            <font id="Return">return</font> <font id="StringLiteral">"sample result"</font>;
+<a name="425"></a>        }
+<a name="426"></a>        
+<a name="427"></a>    }        
+<a name="428"></a>        
+<a name="429"></a>}
+<a name="430"></a></pre>
+
+</body></html>

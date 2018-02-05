@@ -1,0 +1,198 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0//EN">
+<!-- saved from url=(0090)http://mockejb.sourceforge.net/java2html/org/mockejb/test/JdbcAndTransactionTest.java.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<link rel="STYLESHEET" type="text/css" href="./org.mockejb.test.JdbcAndTransactionTest (Java2HTML)_files/stylesheet.css" title="Style">
+<meta name="GENERATOR" content="Java2HTML Version 1.3.1">
+<title>org.mockejb.test.JdbcAndTransactionTest (Java2HTML)</title>
+</head>
+<body><table id="Header" border="0" cellpadding="0" cellspacing="0" width="100%">
+<tbody><tr>
+<td colspan="2" width="33%">&nbsp;</td>
+<td align="center" colspan="2" width="33%">
+<font size="4">JdbcAndTransactionTest.java</font>
+</td>
+<td align="right" colspan="2" width="33%">&nbsp;</td>
+</tr>
+</tbody></table>
+<pre id="Classes"><a name="1"></a><font id="Package">package</font> <a href="http://mockejb.sourceforge.net/java2html/org.mockejb.test.index.html" target="packageFrame">org.mockejb.test</a>;
+<a name="2"></a>
+<a name="3"></a>
+<a name="4"></a><font id="Import">import</font> java.util.Collection;
+<a name="5"></a>
+<a name="6"></a><font id="Import">import</font> javax.naming.*;
+<a name="7"></a><font id="Import">import</font> com.mockrunner.mock.ejb.MockUserTransaction;
+<a name="8"></a>
+<a name="9"></a><font id="Import">import</font> <a href="http://mockejb.sourceforge.net/java2html/org.mockejb.index.html" target="packageFrame">org.mockejb.*</a>;
+<a name="10"></a><font id="Import">import</font> <a href="http://mockejb.sourceforge.net/java2html/org.mockejb.jndi.index.html" target="packageFrame">org.mockejb.jndi.*</a>;
+<a name="11"></a><font id="Import">import</font> <a href="http://mockejb.sourceforge.net/java2html/org.mockejb.interceptor.index.html" target="packageFrame">org.mockejb.interceptor.*</a>;
+<a name="12"></a>
+<a name="13"></a>
+<a name="14"></a><font id="FormalComment">/**
+<a name="15"></a> * Demonstrates the use of JDBC and transactions with MockEJB. 
+<a name="16"></a> * 
+<a name="17"></a> * @author Alexander Ananiev
+<a name="18"></a> */</font>
+<a name="19"></a><font id="Public">public</font> <font id="Class">class</font> JdbcAndTransactionTest  <font id="Extends">extends</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/OptionalCactusTestCase.java.html">OptionalCactusTestCase</a> {
+<a name="20"></a>
+<a name="21"></a>    <font id="SingleLineComment">// State of this test case. These variables are initialized by setUp method
+<a name="22"></a></font>    <font id="Private">private</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleService.java.html">SampleService</a> sampleService;
+<a name="23"></a>    <font id="Private">private</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleServiceHome.java.html">SampleServiceHome</a> sampleServiceHome;
+<a name="24"></a>    <font id="Private">private</font> Context context;
+<a name="25"></a>
+<a name="26"></a>    <font id="SingleLineComment">// Aspect system used by this test
+<a name="27"></a></font>    <font id="Private">private</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/interceptor/AspectSystem.java.html">AspectSystem</a> aspectSystem;
+<a name="28"></a>    
+<a name="29"></a>
+<a name="30"></a>    <font id="Private">private</font> MockUserTransaction mockTransaction;
+<a name="31"></a>
+<a name="32"></a>    <font id="FormalComment">/**
+<a name="33"></a>     * Constructor for JdbcTransactionTest.
+<a name="34"></a>     * @param name name of the test
+<a name="35"></a>     */</font>
+<a name="36"></a>    <font id="Public">public</font> JdbcAndTransactionTest(String name) {
+<a name="37"></a>        <font id="Super">super</font>(name);
+<a name="38"></a>    }
+<a name="39"></a>    
+<a name="40"></a>    <font id="FormalComment">/**
+<a name="41"></a>     * Deploys and creates EJBs needed for our tests.
+<a name="42"></a>     */</font>    
+<a name="43"></a>    <font id="Public">public</font> <font id="Void">void</font> setUp() <font id="Throws">throws</font> Exception {
+<a name="44"></a>
+<a name="45"></a>        aspectSystem =  AspectSystemFactory.getAspectSystem();
+<a name="46"></a>        
+<a name="47"></a>        <font id="SingleLineComment">// inside the app server use its InitialContext
+<a name="48"></a></font>        <font id="If">if</font> ( isRunningOnServer() ) {
+<a name="49"></a>            context = <font id="New">new</font> InitialContext( );
+<a name="50"></a>        }    
+<a name="51"></a>        <font id="SingleLineComment">// if the test runs outside of the app server
+<a name="52"></a></font>        <font id="Else">else</font> {
+<a name="53"></a>            MockContextFactory.setAsInitial();
+<a name="54"></a>            <font id="SingleLineComment">// create the initial context that will be used for binding EJBs
+<a name="55"></a></font>            context = <font id="New">new</font> InitialContext( );
+<a name="56"></a>            <font id="SingleLineComment">// Create an instance of the MockContainer
+<a name="57"></a></font>            <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/MockContainer.java.html">MockContainer</a> mockContainer = <font id="New">new</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/MockContainer.java.html">MockContainer</a>( context );
+<a name="58"></a>
+<a name="59"></a>            <font id="MultiLineComment">/* Create deployment descriptor of our sample bean.
+<a name="60"></a>             * MockEjb does not support XML descriptors.
+<a name="61"></a>             */</font>
+<a name="62"></a>            <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/SessionBeanDescriptor.java.html">SessionBeanDescriptor</a> sampleBeanDescriptor = 
+<a name="63"></a>                <font id="New">new</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/SessionBeanDescriptor.java.html">SessionBeanDescriptor</a>( SampleService.JNDI_NAME, 
+<a name="64"></a>                <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleServiceHome.java.html">SampleServiceHome</a>.<font id="Class">class</font>, <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleService.java.html">SampleService</a>.<font id="Class">class</font>, <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleServiceBean.java.html">SampleServiceBean</a>.<font id="Class">class</font> );
+<a name="65"></a>            <font id="SingleLineComment">// Deploy operation simply creates Home and binds it to JNDI
+<a name="66"></a></font>            mockContainer.deploy( sampleBeanDescriptor );
+<a name="67"></a>
+<a name="68"></a>            <font id="SingleLineComment">// StatelssSampleBean calls SampleHelperBean, so we need to deploy it too
+<a name="69"></a></font>    
+<a name="70"></a>            <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/SessionBeanDescriptor.java.html">SessionBeanDescriptor</a> helperBeanDescriptor = 
+<a name="71"></a>                <font id="New">new</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/SessionBeanDescriptor.java.html">SessionBeanDescriptor</a>( SampleServiceBean.HELPER_BEAN_JNDI_NAME, 
+<a name="72"></a>                <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleHelperHome.java.html">SampleHelperHome</a>.<font id="Class">class</font>, <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleHelper.java.html">SampleHelper</a>.<font id="Class">class</font>, <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleHelperBean.java.html">SampleHelperBean</a>.<font id="Class">class</font> );
+<a name="73"></a>            mockContainer.deploy( helperBeanDescriptor );
+<a name="74"></a>
+<a name="75"></a>            <font id="MultiLineComment">/* Prepare the data source if we are not running in the app server.
+<a name="76"></a>             * We assume that the app server has the data source pre-configured.
+<a name="77"></a>             * You don't have to do it that way, the code will work in both cases, 
+<a name="78"></a>             * however it is "cleaner" to rely on the infrastructure provided by the 
+<a name="79"></a>             * app server for in-container testing. Also, the data source inside the 
+<a name="80"></a>             * app server may point to a completely different database. 
+<a name="81"></a>             */</font>
+<a name="82"></a>
+<a name="83"></a>            <font id="SingleLineComment">// Instantiate DataSource implementation
+<a name="84"></a></font>            
+<a name="85"></a>            <font id="SingleLineComment">// You can use Jakarta DBCP
+<a name="86"></a></font>            <font id="SingleLineComment">//org.apache.commons.dbcp.BasicDataSource ds = new org.apache.commons.dbcp.BasicDataSource();
+<a name="87"></a></font>            <font id="SingleLineComment">//ds.setDriverClassName("com.mysql.jdbc.Driver");
+<a name="88"></a></font>            
+<a name="89"></a>            <font id="SingleLineComment">// You can also use DataSource implementation that comes with MySQL driver
+<a name="90"></a></font>            com.mysql.jdbc.jdbc2.optional.MysqlDataSource ds = <font id="New">new</font> com.mysql.jdbc.jdbc2.optional.MysqlDataSource();
+<a name="91"></a>        
+<a name="92"></a>            <font id="SingleLineComment">// Or, in case of Oracle driver:
+<a name="93"></a></font>            <font id="SingleLineComment">// oracle.jdbc.pool.OracleDataSource ds = oracle.jdbc.pool.OracleDataSource();
+<a name="94"></a></font>            
+<a name="95"></a>            <font id="SingleLineComment">// point to the database - we use the default MySql database.
+<a name="96"></a></font>            ds.setUrl(<font id="StringLiteral">"jdbc:mysql://localhost:3306/test"</font>);
+<a name="97"></a>            
+<a name="98"></a>            <font id="SingleLineComment">// add to the context
+<a name="99"></a></font>            context.rebind(<font id="StringLiteral">"java:comp/env/jdbc/SampleDataSource"</font>, ds);
+<a name="100"></a>            
+<a name="101"></a>            <font id="SingleLineComment">// we use MockTransaction outside of the app server            
+<a name="102"></a></font>            mockTransaction = <font id="New">new</font> MockUserTransaction();
+<a name="103"></a>            context.rebind(<font id="StringLiteral">"javax.transaction.UserTransaction"</font>, mockTransaction );            
+<a name="104"></a>        }
+<a name="105"></a>
+<a name="106"></a>        <font id="SingleLineComment">// All EJBs are now deployed
+<a name="107"></a></font>        
+<a name="108"></a>        <font id="SingleLineComment">// To get the Sample bean we use the standard J2EE routine
+<a name="109"></a></font>       
+<a name="110"></a>        <font id="SingleLineComment">// Lookup the home
+<a name="111"></a></font>        <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleServiceHome.java.html">SampleServiceHome</a> sampleHome = (<a href="http://mockejb.sourceforge.net/java2html/org/mockejb/test/SampleServiceHome.java.html">SampleServiceHome</a>)context.lookup( SampleService.JNDI_NAME );
+<a name="112"></a>        
+<a name="113"></a>        <font id="SingleLineComment">// create the bean
+<a name="114"></a></font>        sampleService = sampleHome.create();
+<a name="115"></a>
+<a name="116"></a>    }
+<a name="117"></a>
+<a name="118"></a>    <font id="FormalComment">/**
+<a name="119"></a>     * Performs the necessary cleanup by restoring the system properties that
+<a name="120"></a>     * were modified by MockContextFactory.setAsInitial().
+<a name="121"></a>     * This is needed in case if the test runs inside the container, so it would
+<a name="122"></a>     * not affect the tests that run after it.  
+<a name="123"></a>     */</font>
+<a name="124"></a>    <font id="Public">public</font> <font id="Void">void</font> tearDown() {
+<a name="125"></a>        
+<a name="126"></a>        MockContextFactory.revertSetAsInitial();
+<a name="127"></a>    }
+<a name="128"></a>
+<a name="129"></a>    <font id="FormalComment">/**
+<a name="130"></a>     * Tests EJB interaction with the database without transactions, i.e, 
+<a name="131"></a>     * the transactional policy is "Suppports".
+<a name="132"></a>     */</font>  
+<a name="133"></a>    <font id="Public">public</font> <font id="Void">void</font> testJdbc() <font id="Throws">throws</font> Exception {
+<a name="134"></a>        
+<a name="135"></a>        <font id="MultiLineComment">/* Read something from the database
+<a name="136"></a>         * We assume the existence of the "test_table" with a column "name".
+<a name="137"></a>         */</font>
+<a name="138"></a>        Collection values = sampleService.selectFromTable( <font id="StringLiteral">"test_table"</font>, <font id="StringLiteral">"name"</font>);
+<a name="139"></a>        assertNotNull(values);
+<a name="140"></a>    }
+<a name="141"></a>    
+<a name="142"></a>    <font id="FormalComment">/**
+<a name="143"></a>     * Demonstrates the use of transactions with MockEJB. 
+<a name="144"></a>     * Outside of the container, we use MockTransaction, inside we can rely on 
+<a name="145"></a>     * the real transaction support. Inside the container we can't really test much. 
+<a name="146"></a>     */</font>
+<a name="147"></a>    <font id="Public">public</font> <font id="Void">void</font> testTransactions() <font id="Throws">throws</font> Exception {
+<a name="148"></a>
+<a name="149"></a>        <font id="SingleLineComment">// it does not make sense to run this test on the server since we can't test much 
+<a name="150"></a></font>        <font id="If">if</font> ( isRunningOnServer() ){
+<a name="151"></a>            <font id="Return">return</font>;
+<a name="152"></a>        }        
+<a name="153"></a>        
+<a name="154"></a>        <font id="SingleLineComment">// set our policy
+<a name="155"></a></font>        aspectSystem.add( <font id="New">new</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/interceptor/ClassPatternPointcut.java.html">ClassPatternPointcut</a>(<font id="StringLiteral">"org.mockejb.test"</font>), 
+<a name="156"></a>            <font id="New">new</font> <a href="http://mockejb.sourceforge.net/java2html/org/mockejb/TransactionManager.java.html">TransactionManager</a>( TransactionPolicy.REQUIRED ));
+<a name="157"></a>        
+<a name="158"></a>        Collection values = sampleService.selectFromTable( <font id="StringLiteral">"test_table"</font>, <font id="StringLiteral">"name"</font>);
+<a name="159"></a>        assertNotNull(values);
+<a name="160"></a>        
+<a name="161"></a>        assertTrue( mockTransaction.wasBeginCalled() );
+<a name="162"></a>        assertTrue( mockTransaction.wasCommitCalled() );
+<a name="163"></a>        
+<a name="164"></a>        <font id="SingleLineComment">// Call the method that explicitly rolls back the transaction using ejb context        
+<a name="165"></a></font>        mockTransaction.reset();
+<a name="166"></a>        
+<a name="167"></a>        sampleService.rollbackSampleTransaction();
+<a name="168"></a>        
+<a name="169"></a>        assertTrue( mockTransaction.wasBeginCalled() );
+<a name="170"></a>        assertTrue( mockTransaction.wasRollbackOnlyCalled() );
+<a name="171"></a>        assertTrue( mockTransaction.wasRollbackCalled() );
+<a name="172"></a>
+<a name="173"></a>        <font id="SingleLineComment">// TODO: test other policies
+<a name="174"></a></font>    
+<a name="175"></a>    }
+<a name="176"></a>    
+<a name="177"></a>    
+<a name="178"></a>
+<a name="179"></a>}
+<a name="180"></a></pre>
+
+</body></html>
